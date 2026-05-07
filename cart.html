@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<!--
+  FILE: cart.html
+  PURPOSE: Shows the user's shopping cart.
+  - Loads cart items from php/add_to_cart.php via JavaScript
+  - Lets user change quantities or remove items
+  - Shows price breakdown (subtotal, shipping, tax, total)
+  - "Proceed to Checkout" button goes to checkout.html
+  - If not logged in, redirects to login
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Bag — Apple Store</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/feather-icons"></script>
+</head>
+<body>
+
+<!-- ===== NAVBAR ===== -->
+<nav id="navbar">
+    <div class="nav-inner">
+        <a href="index.html" class="nav-logo" title="Apple Store Home">
+            <!-- Apple logo SVG -->
+            <svg width="20" height="24" viewBox="0 0 814 1000" fill="currentColor">
+                <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-37.5-150.3-96.4c-52.1-66.5-101-170.5-101-269.3 0-170.4 111.4-260.5 220.5-260.5 57.5 0 105.3 38 140.9 38 33.9 0 87-40.3 154-40.3 24.9 0 108.2 2.3 159.8 86.4zm-216.8-78.2c32.1-38.1 53.7-90.8 53.7-143.5 0-7.4-.6-14.9-1.9-21-50.6 1.9-110.4 33.4-146.1 75.8-29.4 33.4-55.8 86.4-55.8 140.3 0 8.4 1.3 16.9 1.9 19.5 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-29.8 134.6-72.4z"/>
+            </svg>
+        </a>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html">Store</a></li>
+            <li><a href="products.html?category=mac">Mac</a></li>
+            <li><a href="products.html?category=iphone">iPhone</a></li>
+            <li><a href="products.html?category=ipad">iPad</a></li>
+            <li><a href="products.html?category=apple-watch">Watch</a></li>
+            <li><a href="products.html?category=airpods">AirPods</a></li>
+        </ul>
+        <div class="nav-actions">
+            <button class="nav-icon-btn" id="accountBtn" title="Account"><i data-feather="user"></i></button>
+            <!-- Cart icon — active page so we highlight it -->
+            <a href="cart.html" class="nav-icon-btn cart-btn active-page" title="Cart">
+                <i data-feather="shopping-bag"></i>
+                <span class="cart-badge" id="cartBadge" style="display:none">0</span>
+            </a>
+            <button class="nav-hamburger" id="navHamburger"><i data-feather="menu"></i></button>
+        </div>
+    </div>
+</nav>
+
+<!-- ===== MAIN CART PAGE ===== -->
+<main class="cart-page">
+    <div class="container">
+
+        <!-- This div shows while we're loading cart from PHP -->
+        <div id="cartLoading" style="text-align:center; padding:80px 0;">
+            <div class="skeleton" style="width:200px;height:32px;margin:0 auto 16px;border-radius:8px;"></div>
+            <div class="skeleton" style="width:100%;height:120px;border-radius:14px;margin-bottom:12px;"></div>
+            <div class="skeleton" style="width:100%;height:120px;border-radius:14px;"></div>
+        </div>
+
+        <!-- This div shows when cart is NOT logged in -->
+        <div id="cartNotLoggedIn" style="display:none; text-align:center; padding:80px 20px;">
+            <i data-feather="lock" style="width:64px;height:64px;color:#d2d2d7;margin-bottom:20px;"></i>
+            <h2 style="font-size:28px;font-weight:600;margin-bottom:8px;">Sign in to view your bag</h2>
+            <p style="color:#6e6e73;margin-bottom:28px;">Your cart is saved to your account.</p>
+            <button class="btn btn-primary" id="cartLoginBtn">Sign In</button>
+        </div>
+
+        <!-- This div shows when cart IS empty -->
+        <div id="cartEmpty" style="display:none;" class="cart-empty">
+            <i data-feather="shopping-bag"></i>
+            <h3>Your bag is empty</h3>
+            <p>Add items from the store to get started.</p>
+            <a href="index.html" class="btn btn-primary">Continue Shopping</a>
+        </div>
+
+        <!-- This div shows the actual cart items -->
+        <div id="cartContent" style="display:none;">
+            <h1 class="cart-title">Review your bag</h1>
+            <p style="color:#6e6e73;margin-bottom:32px;font-size:15px;">Free delivery and free returns on all orders.</p>
+
+            <!-- Two-column layout: items on left, summary on right -->
+            <div class="cart-layout">
+
+                <!-- LEFT: List of cart items (populated by JS) -->
+                <div id="cartItemsList">
+                    <!-- Items are injected here by loadCart() in script.js -->
+                </div>
+
+                <!-- RIGHT: Order summary box -->
+                <div class="order-summary">
+                    <h3>Order Summary</h3>
+
+                    <div class="summary-row">
+                        <span>Subtotal</span>
+                        <span id="summarySubtotal">$0.00</span>
+                    </div>
+
+                    <div class="summary-row">
+                        <span>Shipping</span>
+                        <!-- Shows "FREE" in green when applicable -->
+                        <span id="summaryShipping">$0.00</span>
+                    </div>
+
+                    <div class="summary-row">
+                        <span>Estimated Tax (5%)</span>
+                        <span id="summaryTax">$0.00</span>
+                    </div>
+
+                    <div class="summary-row total">
+                        <span>Total</span>
+                        <span id="summaryTotal">$0.00</span>
+                    </div>
+
+                    <!-- Goes to checkout.html -->
+                    <a href="checkout.html" class="btn btn-primary btn-full" id="checkoutBtn" style="margin-top:20px;font-size:17px;padding:16px;border-radius:12px;">
+                        Check Out
+                    </a>
+
+                    <p style="font-size:12px;color:#6e6e73;text-align:center;margin-top:12px;">
+                        Secure checkout · All major cards accepted
+                    </p>
+                </div>
+
+            </div><!-- end .cart-layout -->
+        </div><!-- end #cartContent -->
+
+    </div><!-- end .container -->
+</main>
+
+<!-- ===== AUTH MODAL (login popup) ===== -->
+<div class="modal-overlay" id="authModal">
+    <div class="modal auth-modal">
+        <button class="modal-close" id="authModalClose"><i data-feather="x"></i></button>
+        <div id="loginForm" class="auth-form">
+            <div class="auth-logo">
+                <svg width="40" height="48" viewBox="0 0 814 1000" fill="currentColor"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-37.5-150.3-96.4c-52.1-66.5-101-170.5-101-269.3 0-170.4 111.4-260.5 220.5-260.5 57.5 0 105.3 38 140.9 38 33.9 0 87-40.3 154-40.3 24.9 0 108.2 2.3 159.8 86.4zm-216.8-78.2c32.1-38.1 53.7-90.8 53.7-143.5 0-7.4-.6-14.9-1.9-21-50.6 1.9-110.4 33.4-146.1 75.8-29.4 33.4-55.8 86.4-55.8 140.3 0 8.4 1.3 16.9 1.9 19.5 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-29.8 134.6-72.4z"/></svg>
+            </div>
+            <h2>Sign in to your<br>Apple Account</h2>
+            <div class="form-group"><input type="email" id="loginEmail" placeholder="Apple ID (email)"></div>
+            <div class="form-group"><input type="password" id="loginPassword" placeholder="Password"></div>
+            <p class="auth-error" id="loginError"></p>
+            <button class="btn btn-primary btn-full" id="loginSubmit">Continue</button>
+            <div class="auth-divider"><span>or</span></div>
+            <p class="auth-switch">Don't have an Apple ID? <a href="#" id="showRegister">Create yours now</a></p>
+            <p class="auth-hint">Demo admin: admin@applestore.com / Admin@123</p>
+        </div>
+        <div id="registerForm" class="auth-form" style="display:none">
+            <div class="auth-logo">
+                <svg width="40" height="48" viewBox="0 0 814 1000" fill="currentColor"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-37.5-150.3-96.4c-52.1-66.5-101-170.5-101-269.3 0-170.4 111.4-260.5 220.5-260.5 57.5 0 105.3 38 140.9 38 33.9 0 87-40.3 154-40.3 24.9 0 108.2 2.3 159.8 86.4zm-216.8-78.2c32.1-38.1 53.7-90.8 53.7-143.5 0-7.4-.6-14.9-1.9-21-50.6 1.9-110.4 33.4-146.1 75.8-29.4 33.4-55.8 86.4-55.8 140.3 0 8.4 1.3 16.9 1.9 19.5 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-29.8 134.6-72.4z"/></svg>
+            </div>
+            <h2>Create your<br>Apple Account</h2>
+            <div class="form-group"><input type="text" id="regName" placeholder="Full name"></div>
+            <div class="form-group"><input type="email" id="regEmail" placeholder="Email address"></div>
+            <div class="form-group"><input type="tel" id="regPhone" placeholder="Phone (optional)"></div>
+            <div class="form-group"><input type="password" id="regPassword" placeholder="Password (min 6 chars)"></div>
+            <p class="auth-error" id="registerError"></p>
+            <button class="btn btn-primary btn-full" id="registerSubmit">Create Account</button>
+            <p class="auth-switch">Already have an Apple ID? <a href="#" id="showLogin">Sign in</a></p>
+        </div>
+        <div id="loggedInPanel" class="auth-form" style="display:none">
+            <div class="auth-logo"><div class="user-avatar" id="userAvatar">A</div></div>
+            <h2 id="userGreeting">Hello!</h2>
+            <p id="userEmailDisplay" class="auth-hint"></p>
+            <div class="user-menu-links">
+                <a href="cart.html"><i data-feather="shopping-bag"></i> My Cart</a>
+                <a href="orders.html"><i data-feather="package"></i> My Orders</a>
+                <a href="admin/dashboard.php" id="adminLink" style="display:none"><i data-feather="settings"></i> Admin Panel</a>
+            </div>
+            <button class="btn btn-secondary btn-full" id="logoutBtn">Sign Out</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast notification (small popup message at the bottom) -->
+<div class="toast" id="toast"></div>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="container">
+        <div class="footer-divider"></div>
+        <div class="footer-bottom">
+            <p>Copyright &copy; 2025 Apple Store Clone. Built for CV portfolio purposes.</p>
+        </div>
+    </div>
+</footer>
+
+<!-- jQuery (loads before our script so $ is available) -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<!-- Our main JS file — handles auth, navbar, cart badge, etc. -->
+<script src="js/script.js"></script>
+<script>
+/*
+  Cart page specific JavaScript
+  This runs AFTER script.js because it's defined below it.
+  It loads the cart data and builds the HTML to display it.
+*/
+
+// When the page is ready, check auth and load cart
+$(document).ready(function() {
+    // initAuth() is defined in script.js
+    // After it runs, it calls loadCartPage() via callback
+    loadCartPage();
+});
+
+function loadCartPage() {
+    // Show loading skeleton while we wait for the server
+    $('#cartLoading').show();
+    $('#cartContent, #cartEmpty, #cartNotLoggedIn').hide();
+
+    // Call php/add_to_cart.php?action=get
+    $.getJSON('php/add_to_cart.php', { action: 'get' })
+        .done(function(res) {
+            $('#cartLoading').hide();
+
+            if (res.success && res.items && res.items.length > 0) {
+                renderCartItems(res.items, res.summary);
+                $('#cartContent').show();
+            } else {
+                // Cart is empty
+                $('#cartEmpty').show();
+            }
+        })
+        .fail(function(xhr) {
+            $('#cartLoading').hide();
+            // 401 = not logged in
+            if (xhr.status === 401) {
+                $('#cartNotLoggedIn').show();
+                feather.replace();
+            } else {
+                showToast('Could not load cart. Please try again.', 'error');
+            }
+        });
+}
+
+function renderCartItems(items, summary) {
+    const $list = $('#cartItemsList').empty();
+
+    items.forEach(function(item) {
+        // Build variant description e.g. "256GB · Black Titanium"
+        let variantText = '';
+        if (item.storage) variantText += item.storage;
+        if (item.color)   variantText += (variantText ? ' · ' : '') + item.color;
+
+        // Check if image exists, otherwise show a placeholder SVG
+        const imgHtml = item.image_main
+            ? `<img src="${item.image_main}" alt="${item.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+               <div class="img-placeholder" style="display:none;">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="none" stroke="#aaa" stroke-width="1.5" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/></svg>
+               </div>`
+            : `<div class="img-placeholder">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="none" stroke="#aaa" stroke-width="1.5" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/></svg>
+               </div>`;
+
+        const $item = $(`
+            <div class="cart-item" data-cart-id="${item.cart_id}">
+                <div class="cart-item-img">${imgHtml}</div>
+                <div class="cart-item-info">
+                    <h3>${item.name}</h3>
+                    <p>${variantText || 'Standard'}</p>
+                    <!-- Quantity controls -->
+                    <div class="qty-control" style="margin-top:12px;">
+                        <button class="qty-btn qty-minus" data-cart-id="${item.cart_id}" data-qty="${item.quantity}">−</button>
+                        <span class="qty-val">${item.quantity}</span>
+                        <button class="qty-btn qty-plus" data-cart-id="${item.cart_id}" data-qty="${item.quantity}">+</button>
+                    </div>
+                </div>
+                <div class="cart-item-actions">
+                    <span class="cart-item-price">$${(item.unit_price * item.quantity).toFixed(2)}</span>
+                    <span style="font-size:12px;color:#6e6e73;">$${parseFloat(item.unit_price).toFixed(2)} each</span>
+                    <button class="cart-remove" data-cart-id="${item.cart_id}" title="Remove item">
+                        <i data-feather="trash-2"></i> Remove
+                    </button>
+                </div>
+            </div>
+        `);
+
+        $list.append($item);
+    });
+
+    // Update summary prices
+    $('#summarySubtotal').text('$' + summary.subtotal.toFixed(2));
+    $('#summaryTax').text('$' + summary.tax.toFixed(2));
+    $('#summaryTotal').text('$' + summary.total.toFixed(2));
+
+    if (summary.free_shipping || summary.shipping === 0) {
+        $('#summaryShipping').html('<span class="free">FREE</span>');
+    } else {
+        $('#summaryShipping').text('$' + summary.shipping.toFixed(2));
+    }
+
+    feather.replace(); // Re-render feather icons in the new HTML
+}
+
+// ── Remove item ───────────────────────────────────────────
+$(document).on('click', '.cart-remove', function() {
+    const cartId = $(this).data('cart-id');
+    const $item  = $(this).closest('.cart-item');
+
+    // Fade out the item visually while we wait for server
+    $item.css('opacity', '0.5');
+
+    $.post('php/add_to_cart.php', { action: 'remove', cart_id: cartId })
+        .done(function(res) {
+            if (res.success) {
+                $item.slideUp(300, function() {
+                    $(this).remove();
+                    // If list is now empty, show empty state
+                    if ($('#cartItemsList .cart-item').length === 0) {
+                        $('#cartContent').hide();
+                        $('#cartEmpty').show();
+                        feather.replace();
+                    }
+                });
+                // Update navbar badge
+                if (res.count !== undefined) {
+                    if (res.count > 0) {
+                        $('#cartBadge').text(res.count).show();
+                    } else {
+                        $('#cartBadge').hide();
+                    }
+                }
+                showToast('Item removed from bag.');
+            }
+        });
+});
+
+// ── Update quantity ───────────────────────────────────────
+$(document).on('click', '.qty-minus, .qty-plus', function() {
+    const $btn   = $(this);
+    const cartId = $btn.data('cart-id');
+    const isPlus = $btn.hasClass('qty-plus');
+
+    // Read current quantity from the display span
+    const $qtySpan = $btn.closest('.qty-control').find('.qty-val');
+    let   currentQty = parseInt($qtySpan.text());
+    const newQty     = isPlus ? currentQty + 1 : currentQty - 1;
+
+    if (newQty < 1) {
+        // Remove item if quantity goes below 1
+        $btn.closest('.cart-item').find('.cart-remove').trigger('click');
+        return;
+    }
+    if (newQty > 10) {
+        showToast('Maximum 10 per item.', 'error');
+        return;
+    }
+
+    // Update display immediately (optimistic UI — feels faster)
+    $qtySpan.text(newQty);
+
+    // Then update on the server
+    $.post('php/add_to_cart.php', { action: 'update', cart_id: cartId, quantity: newQty })
+        .done(function(res) {
+            if (res.success) {
+                // Reload full cart to recalculate totals
+                loadCartPage();
+            }
+        });
+});
+
+// Open login modal from the "Sign In" button on empty state
+$('#cartLoginBtn').on('click', function() {
+    $('#authModal').addClass('active');
+    feather.replace();
+});
+</script>
+</body>
+</html>
